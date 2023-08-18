@@ -190,6 +190,7 @@ def ppxf_desi_example(input_file, index):
         f1.write("%s,%s,%s,%s,%s\n" % (wholeline00[i],pp.sol[1],pp.error[1],DER_SNR(lrflux),snr))
         print('Elapsed time in pPXF: %.2f s' % (clock() - t))
         print("SNR",DER_SNR(lrflux),snr)
+        print("sigma",pp.sol[1],"pm",pp.error[1])
     # If the galaxy is at significant redshift z and the wavelength has been
     # de-redshifted with the three lines "z = 1.23..." near the beginning of
     # this procedure, the best-fitting redshift is now given by the following
@@ -207,7 +208,7 @@ f1 = open("/global/homes/k/ksaid/DESI_Work/Run/Good_Guys/fuji_FPT-fibermap-good-
 f1.write('#fibermap_targetid,fibermap_i,ra,dec,targetid,id,healpix,survey,program,targetid.1,z,zerr,zwarn,spectype,subtype,deltachi2,healpix_id,targetid.2,target_ra,target_dec,obsconditions,release,brickid,brick_objid,fiberflux_ivar_g,fiberflux_ivar_r,fiberflux_ivar_z,morphtype,flux_g,flux_r,flux_z,flux_ivar_g,flux_ivar_r,flux_ivar_z,ebv,flux_w1,flux_w2,flux_ivar_w1,flux_ivar_w2,fiberflux_g,fiberflux_r,fiberflux_z,fibertotflux_g,fibertotflux_r,fibertotflux_z,sersic,coadd_numexp,coadd_exptime,coadd_numnight,coadd_numtile,healpix_id.1,objid,brickid.1,brickname,ra.1,dec.1,ppxf_sigma,ppxf_sigma_error,DER_SNR,snr_ppxf')
 f1.write('\n')
 for line in f0:
-    if line[0]!='#':# and str(line.split(",")[4]) == '39628494279280105':
+    if line[0]!='#':# and str(line.split(",")[4]) == '39628414323262865':
         wholeline00.append(str(line.split()[0]))
         x00.append(str(line.split(",")[4]))
         x02.append(float(line.split(",")[10]))
@@ -235,9 +236,12 @@ for i in range(len(x00)):
         #print (i,i,i,i,i,i,i)
         ppxf_desi_example(input_file, index)
 
-        #import matplotlib.pyplot as plt
-        #plt.savefig('./plots/'+name00+'.pdf')
-        #plt.show()
+        # import matplotlib.pyplot as plt
+        # plt.text(387,1.4,r'$S/N = 23.9$ [$\AA^{-1}$]')
+        # plt.text(387,1.3,r'$z =$ '+str(round(redshift00,5)))
+        # plt.text(387,1.2,r'$\sigma = 243\pm2$ km $s^{-1}$')
+        # plt.savefig('./plots/'+name00+'.pdf')
+        # plt.show()
         #plt.show(block=False)
         #plt.pause(1)
         #plt.close()

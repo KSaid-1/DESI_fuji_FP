@@ -19,7 +19,21 @@ from scipy.signal import find_peaks, peak_widths
 #f1 = open("coadd-0-66003-20200315-fibermap.txt","w")
 
 def get_RMS_from_resolution_data(wave, resdata, fwhm=False):
-    
+    """
+    Calculate the Root Mean Square (RMS) or Full Width at Half Maximum (FWHM) values from resolution data.
+
+    Parameters:
+    wave (array): Vector or array representing the wavelength values.
+    resdata (2D array): 2D array of resolution data.
+                        First dimension represents the spatial dimension,
+                        second dimension represents the wavelength dimension.
+    fwhm (bool, optional): Flag to calculate and return FWHM values instead of RMS values. Default is False.
+
+    Returns:
+    RMS (array): Root Mean Square values representing the line width dispersion for each wavelength point.
+                (or)
+    FWHM (array): Full Width at Half Maximum values representing the line profile width for each wavelength point.
+    """
     N = np.shape(resdata)[1] #number of wavelength points
     peaks=[5] #centre of 11-sized line profile
     
@@ -37,7 +51,20 @@ def get_RMS_from_resolution_data(wave, resdata, fwhm=False):
         return RMS
 
 def read_data(input_file, index=None, invalid_pixel_noise=1.e10):
+    """
+    Read data from a FITS file and return the flux, noise, wavelength, and resolution data.
 
+    Parameters:
+    input_file (str): Path to the input FITS file.
+    index (int or None, optional): Index of the data to extract. Default is None.
+    invalid_pixel_noise (float, optional): Value assigned to invalid spaxels. Default is 1.e10.
+
+    Returns:
+    flux (2D array): Flux data extracted from the FITS file.
+    nois (2D array): Noise data extracted from the FITS file.
+    wave (1D array): Wavelength data extracted from the FITS file.
+    resolution (2D array): Resolution data extracted from the FITS file.
+    """
     with fits.open(input_file) as hdu:
         flux = hdu['B_FLUX'].data
         nois = hdu['B_IVAR'].data
@@ -68,6 +95,16 @@ def read_data(input_file, index=None, invalid_pixel_noise=1.e10):
     
         
 def valid_pixels(nois, invalid_pixel_noise=1.e10):
+    """
+    Find the indices of valid pixels based on the noise data.
+
+    Parameters:
+    nois (array): Array of noise values.
+    invalid_pixel_noise (float, optional): Value assigned to invalid pixels. Default is 1.e10.
+
+    Returns:
+    indices (array): Array of indices corresponding to the valid pixels.
+    """
 
     indices = np.arange(len(nois), dtype=int)
 
@@ -76,11 +113,42 @@ def valid_pixels(nois, invalid_pixel_noise=1.e10):
 
 
 def ppxf_desi_example(input_file, index):
+    """
+    The function ppxf_desi_example takes two parameters: input_file 
+    (the path to the input FITS file containing the galaxy spectrum) 
+    and index (the index of the data to extract from the FITS file). 
+    It does not return any value; instead, it performs the pPXF fitting on the given galaxy spectrum.
+    
+    The function essentially performs the pPXF fitting procedure on a DESI galaxy spectrum,
+    including preprocessing steps, logarithmic rebinning, and fitting with a template library.
+    It incorporates several helper functions to handle data reading, preprocessing, 
+    and calculations specific to the pPXF fitting process.
+    
+    Example function to perform pPXF fitting on a DESI galaxy spectrum.
 
+    Parameters:
+    input_file (str): Path to the input FITS file containing the galaxy spectrum.
+    index (int): Index of the data to extract from the FITS file.
+
+    Returns:
+    None
+    """
     ppxf_dir = path.dirname(path.realpath(ppxf_package.__file__))
 
     # Read a galaxy spectrum and define the wavelength range
     #
+    """
+    Reading and preprocessing the galaxy spectrum:
+
+    1. The function calls the read_data function to read the flux, noise, wavelength, and resolution data from the FITS file for the given index.
+    2. The function also calculates and assigns the wavelength range (waverange) based on the first and last elements of the wavelength array.
+    3. The function calculates the Root Mean Square (RMS) of the resolution data (RMS_b_lin) using the get_RMS_from_resolution_data function.
+    4. The variable full_res is set to the median value of RMS_b_lin. If full_res is less than or equal to 0.2, it is set to 0.6.
+    5. The function prints the length, shape, and dimensions of the resolution and wavelength data for debugging purposes.
+    6. The variable FWHM_gal is calculated as full_res * 2.355, assuming a Nyquist sampling.
+    7. The redshift (z) is set to 0 (assumed to be close to the rest frame).
+    8. The wavelength array (wave) and waverange are divided by (1 + z), FWHM_gal is also divided by (1 + z).
+    """
     flux, nois, wave, resolution = read_data(input_file, index=index, invalid_pixel_noise=1.e10)
     waverange = wave[[0, -1]] # Shorthand notation.
     RMS_b_lin = get_RMS_from_resolution_data(wave, resolution)
@@ -97,7 +165,16 @@ def ppxf_desi_example(input_file, index):
     wave /= (1 + z)
     waverange /= (1 + z)
     FWHM_gal /= (1 + z)
+    
+    """
+    Logarithmic rebinning of the galaxy spectrum:
 
+    1. The function calls the log_rebin function to perform logarithmic rebinning on the flux and noise data, 
+    using the waverange and the specified velscale.
+    2. The logarithmically rebinned flux data (lrflux) is then normalized by its median value.
+    3. The function also logarithmically rebins the squared noise data (nois**2) and calculates the square root (lrnois), 
+    which is also normalized by the median flux value.
+    """
     lrflux, lrwave, velscale = util.log_rebin(waverange, flux)
     median_lrflux = np.median(lrflux)
     lrflux /= median_lrflux  # Normalize spectrum to avoid numerical issues
@@ -106,6 +183,15 @@ def ppxf_desi_example(input_file, index):
     lrnois /= median_lrflux
 
     # Read the list of filenames from the IndoUS Stellar Template library.
+    """
+    Reading and preprocessing the template library:
+
+    1. The function retrieves the list of filenames from the IndoUS Stellar Template library.
+    2. The IndoUS template spectra are convolved with the quadratic difference between the DESI and IndoUS instrumental resolutions.
+    3. The function uses the log_rebin function to logarithmically rebin the template spectra to 
+    a velocity scale 2x smaller than the DESI galaxy spectrum.
+    4. The rebinned templates are stored in the templates array.
+    """
     indous = glob.glob('indous_lite/*.fits')
     indous.sort()
     FWHM_tem = 1.35  # I think this is the IndoUS constant resolution FWHM, in \AA.
@@ -155,6 +241,18 @@ def ppxf_desi_example(input_file, index):
     # In the case of a high-redshift galaxy one should de-redshift its
     # wavelength to the rest frame before using the line below (see above).
     #
+    """
+    Velocity shift and redshift calculations:
+
+    1. The function calculates the velocity shift (dv) between the starting wavelength 
+    of the template spectra and the first wavelength element of the galaxy spectrum.
+    2. The redshift (z) is set to a value specified earlier.
+    3. The function determines the good pixels for fitting by calling the determine_goodpixels function
+    with the logarithmically rebinned wavelength array (lrwave), 
+    the wavelength range of the template spectra (ssp_waverange), and the redshift (z).
+    4. The function also determines the valid pixels using the valid_pixels function with 
+    the logarithmically rebinned noise data (lrnois) and a specified invalid pixel noise value.
+    """
     c = 299792.458
     dv = (np.mean(ssp_lrwave[:velscale_ratio]) - lrwave[0])*c  # km/s
 
@@ -166,6 +264,18 @@ def ppxf_desi_example(input_file, index):
     # Here the actual fit starts. The best fit is plotted on the screen.
     # Gas emission lines are excluded from the pPXF fit using the GOODPIXELS keyword.
     #
+    """
+    pPXF fitting:
+
+    1. The function performs the pPXF fitting using the ppxf function.
+    2. The fitting is done with the template library (templates), the logarithmically rebinned flux data (lrflux), 
+    the logarithmically rebinned noise data (lrnois), the velocity scale (velscale), 
+    a starting guess for velocity and sigma (start), the indices of good pixels (goodPixels), and other specified parameters.
+    3. The function prints the formal errors (dV and dsigma) calculated from the pPXF fit.
+    4. The fitting results, such as the best-fitting velocity (pp.sol[0]) and sigma (pp.sol[1]), are written to a file (f1).
+    5. The elapsed time for the pPXF fitting is printed, and the signal-to-noise ratio (DER_SNR) of 
+    the logarithmically rebinned flux data is also printed.
+    """
     vel = c*np.log(1 + z)   # eq.(8) of Cappellari (2017)
     start = [vel, 200.]  # (km/s), starting guess for [V, sigma]
     t = clock()
@@ -229,9 +339,9 @@ for i in range(10):
         #print (i,i,i,i,i,i,i)
         ppxf_desi_example(input_file, index)
 
-        #import matplotlib.pyplot as plt
-        #plt.savefig('./plots/'+name00+'.pdf')
-        #plt.show()
+        import matplotlib.pyplot as plt
+        plt.savefig('./plots/'+name00+'.pdf')
+        plt.show()
         #plt.show(block=False)
         #plt.pause(1)
         #plt.close()
