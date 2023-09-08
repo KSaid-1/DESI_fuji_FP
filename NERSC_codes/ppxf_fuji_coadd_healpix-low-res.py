@@ -93,7 +93,7 @@ def ppxf_desi_example(input_file, index):
     # print ("1D resolution", full_res)
     print ("Before rebinning",len(wave),len(flux),len(nois))
     #print (flux)
-    new_wave = np.arange(wave[0], wave[-1], 2 * (wave[1] - wave[0]))
+    new_wave = np.arange(wave[0], wave[-1], 1.5 * (wave[1] - wave[0]))
     new_flux = np.zeros(len(new_wave))
     new_nois = np.zeros(len(new_wave))
     #print (new_flux)
@@ -113,8 +113,8 @@ def ppxf_desi_example(input_file, index):
         
     for ii in range(len(new_wave)):
     # Find the indices of the original wavelength range that correspond to the new wavelength bin
-        idx = np.where((wave >= new_wave[ii] - 2.0 * (wave[1] - wave[0])) &
-                   (wave < new_wave[ii] + 2.0 * (wave[1] - wave[0])))[0]
+        idx = np.where((wave >= new_wave[ii] - 1.5 * (wave[1] - wave[0])) &
+                   (wave < new_wave[ii] + 1.5 * (wave[1] - wave[0])))[0]
     
     # If there are no indices found, skip this bin
         if len(idx) == 0:
