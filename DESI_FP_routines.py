@@ -298,7 +298,7 @@ def FN_func(FPparams, z_obs, err_r, err_s, err_i, lmin, lmax, smin, freek=False)
 	return np.log(FN)
 
 # Routine to read in the DESI FP data and fit the fundamental plane and recover log-distance ratios
-def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.0, serrcut=0.1, mag_low=10.0, mag_high=18.0, evo_corr=0.85, spiralsinFP=False):
+def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.0, serrcut=1.0, mag_low=10.0, mag_high=18.0, evo_corr=0.85, spiralsinFP=False):
 
 	# Get some redshift-distance lookup tables
 	red_spline, lumred_spline, dist_spline, lumdist_spline, ez_spline = rz_table()
@@ -308,9 +308,9 @@ def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.
 	smax = np.log10(veldispmax)
 
 	# Read in the DESI FP data
-	data = pd.read_csv("./fuji_full_fp_sample_v02.csv")
+	data = pd.read_csv("./fuji_full_fp_sample_v03.csv")
 	print(data.keys())
-	data["zcmb"] = perform_corr(data["z_1"].to_numpy(), data["ra_1"].to_numpy(), data["dec_1"].to_numpy())
+	data["zcmb"] = perform_corr(data["z_x"].to_numpy(), data["ra_1"].to_numpy(), data["dec_1"].to_numpy())
 	data["zcmb_group"] = data["zcmb"]             # No group redshifts at the moment :( So just set the group redshift equal to the CMB redshift
 
 	# Compute the FP variables from the raw data. Redshift uncertainties are negligible so we ignore them (for theta they only increase the error by, at most, 0.06%!)
@@ -318,18 +318,19 @@ def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.
 	data["dz_group"] = sp.interpolate.splev(data["zcmb_group"].to_numpy(), dist_spline)
 	theta = data["uncor_radius"] * np.sqrt(data["BA_ratio"])
 	theta_err = theta * np.sqrt((data["uncor_radius_err"]/data["uncor_radius"])**2 + 0.25*(data["BA_ratio_error"]/data["BA_ratio"])**2)
-	data["r"] = np.log10(theta) + np.log10(data["dz_group"].to_numpy()) + np.log10(1000.0*np.pi/(180.0*3600.0)) - np.log10(1.0 + data["z_1"].to_numpy())
+	data["r"] = np.log10(theta) + np.log10(data["dz_group"].to_numpy()) + np.log10(1000.0*np.pi/(180.0*3600.0)) - np.log10(1.0 + data["z_x"].to_numpy())
 	data["er"] = theta_err/(np.log(10.0)*theta)
-	data["kcor_r"] = calc_kcor('r', data["z_1"].to_numpy(), 'g - r', data["mag_g"].to_numpy() - data["mag_r_corrected"].to_numpy())
-	data["kcor_g"] = calc_kcor('g', data["z_1"].to_numpy(), 'g - r', data["mag_g"].to_numpy() - data["mag_r_corrected"].to_numpy())
-	data["i"] = 0.4*4.65 - 0.4*data["mag_r_corrected"] - 0.4*evo_corr*data["zcmb_group"] - np.log10(2.0*np.pi) - 2.0*np.log10(theta) + 4.0*np.log10(1.0 + data["z_1"]) + 0.4*data["kcor_r"] + 2.0*np.log10(180.0*3600.0/(10.0*np.pi))   # No extinction as this is already included in mag_r_corrected
+	data["kcor_r"] = calc_kcor('r', data["z_x"].to_numpy(), 'g - r', data["mag_g"].to_numpy() - data["mag_r_corrected"].to_numpy())
+	data["kcor_g"] = calc_kcor('g', data["z_x"].to_numpy(), 'g - r', data["mag_g"].to_numpy() - data["mag_r_corrected"].to_numpy())
+	data["i"] = 0.4*4.65 - 0.4*data["mag_r_corrected"] - 0.4*evo_corr*data["zcmb_group"] - np.log10(2.0*np.pi) - 2.0*np.log10(theta) + 4.0*np.log10(1.0 + data["z_x"]) + 0.4*data["kcor_r"] + 2.0*np.log10(180.0*3600.0/(10.0*np.pi))   # No extinction as this is already included in mag_r_corrected
 	data["ei"] = np.sqrt(0.4**2*data["mag_r_err"]**2 + 4.0*(theta_err/(np.log(10.0)*theta))**2)
 	theta_ap = 0.75               # DESI fiber radius in arcseconds
 	sigma_corr = data["ppxf_sigma"] * (theta/8.0/theta_ap)**(-0.04)
+	#sigma_corr = (0.94*data["ppxf_sigma"] + 9.53) * (theta/8.0/theta_ap)**(-0.04) #to correct to sdss ppxf sigma value
 	sigma_corr_err = np.sqrt((sigma_corr * data["ppxf_sigma_error"]/data["ppxf_sigma"])**2 + (0.04*(theta/8.0/theta_ap)**(-1.04)*(theta_err/8.0/theta_ap))**2)
 	data["s"] = np.log10(sigma_corr)
 	data["es"] = sigma_corr_err/(np.log(10.0)*sigma_corr)  
-	data["absmag_r"] = data["mag_r_corrected"] - 5.0*np.log10(data["dz_group"].to_numpy()) - 5.0*np.log10(1.0 + data["z_1"]) - 25.0 - data["kcor_r"] + evo_corr*data["zcmb_group"]
+	data["absmag_r"] = data["mag_r_corrected"] - 5.0*np.log10(data["dz_group"].to_numpy()) - 5.0*np.log10(1.0 + data["z_x"]) - 25.0 - data["kcor_r"] + evo_corr*data["zcmb_group"]
 
 	# Trim the data to the magnitude limits (might not be necessary as the file already has 10.0 < r < 17.0)
 	data = data.drop(data[(data["ppxf_sigma_error"]/data["ppxf_sigma"] > serrcut)].index)
@@ -339,7 +340,7 @@ def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.
 
 	# Compute the Sn weighting
 	Vmin, Vmax = (1.0+zmin)**3*sp.interpolate.splev(zmin, dist_spline)**3, (1.0+zmax)**3*sp.interpolate.splev(zmax, dist_spline)**3
-	Dlim = 10.0**((mag_high - data["mag_r_corrected"].to_numpy() + 5.0*np.log10(data["dz_group"].to_numpy()) + 5.0*np.log10(1.0 + data["z_1"]))/5.0)
+	Dlim = 10.0**((mag_high - data["mag_r_corrected"].to_numpy() + 5.0*np.log10(data["dz_group"].to_numpy()) + 5.0*np.log10(1.0 + data["z_x"]))/5.0)
 	zlim = sp.interpolate.splev(Dlim, lumred_spline)
 	data["Sn"] = np.where(zlim >= zmax, 1.0, np.where(zlim <= zmin, 0.0, (Dlim**3 - Vmin)/(Vmax - Vmin)))
 
@@ -367,9 +368,6 @@ def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.
 		data_fit = data_nospirals.drop(data_nospirals[pvals < 0.01].index).reset_index(drop=True)
 		badcountnew = len(np.where(pvals < 0.01)[0])
 		converged = True if badcount == badcountnew else False
-		# jacobian = FPparams.jac
-		# covariance_matrix = (np.dot(jacobian.T, jacobian))
-		# parameter_uncertainties = np.sqrt(np.diagonal(covariance_matrix))
 		print(FPparams.x, np.sum(chi_squared), len(data_fit), sp.stats.chi2.isf(0.01, np.sum(chi_squared)/(len(data_nospirals) - 8.0)), np.sum(chi_squared)/(len(data_nospirals) - 8.0), badcount, badcountnew, converged)
 		badcount = badcountnew
 
@@ -381,8 +379,8 @@ def fit_logdist(outfile, zmin=0.0033, zmax=0.1, veldispmin=50.0, veldispmax=420.
 
 	d_H = np.outer(10.0**(-dbins), data["dz_group"].to_numpy())
 	z_H = sp.interpolate.splev(d_H, red_spline, der=0)
-	lmin = (4.65 + 5.0*np.log10(1.0+data["z_1"].to_numpy()) - evo_corr*data["zcmb_group"].to_numpy() + data["kcor_r"].to_numpy() + 10.0 - 2.5*np.log10(2.0*math.pi) + 5.0*np.log10(d_H) - mag_high)/5.0
-	lmax = (4.65 + 5.0*np.log10(1.0+data["z_1"].to_numpy()) - evo_corr*data["zcmb_group"].to_numpy() + data["kcor_r"].to_numpy() + 10.0 - 2.5*np.log10(2.0*math.pi) + 5.0*np.log10(d_H) - mag_low)/5.0
+	lmin = (4.65 + 5.0*np.log10(1.0+data["z_x"].to_numpy()) - evo_corr*data["zcmb_group"].to_numpy() + data["kcor_r"].to_numpy() + 10.0 - 2.5*np.log10(2.0*math.pi) + 5.0*np.log10(d_H) - mag_high)/5.0
+	lmax = (4.65 + 5.0*np.log10(1.0+data["z_x"].to_numpy()) - evo_corr*data["zcmb_group"].to_numpy() + data["kcor_r"].to_numpy() + 10.0 - 2.5*np.log10(2.0*math.pi) + 5.0*np.log10(d_H) - mag_low)/5.0
 	loglike = FP_func(FPparams, dbins, data["zcmb"].to_numpy(), data["r"].to_numpy(), data["s"].to_numpy(), data["i"].to_numpy(), data["er"].to_numpy(), data["es"].to_numpy(), data["ei"].to_numpy(), np.ones(len(data)), smin, sumgals=False)
 	FNvals = FN_func(FPparams, data["zcmb"].to_numpy(), data["er"].to_numpy(), data["es"].to_numpy(), data["ei"].to_numpy(), lmin, lmax, smin)
 
