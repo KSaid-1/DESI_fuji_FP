@@ -25,6 +25,7 @@ ax = fig.add_subplot(1, 1, 1, projection='mollweide')
 plt.subplots_adjust(top=0.95, bottom=0.02, right=0.95, left=0.08)
 
 norm = MidpointNormalize(midpoint=-1.0)
+#uncomment that if you have the dust map. I comment that as the file is ~200Mb
 # ax.scatter(dust_data['ra_dust'], dust_data['dec_dust'], s=0.1, c=dust_data['ebv_dust'], 
 #            edgecolors='none', cmap='Reds', norm=norm, alpha=0.1, rasterized=True)
 
