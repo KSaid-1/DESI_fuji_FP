@@ -42,7 +42,7 @@ def calculate_statistical_error(chains):
     return statistical_error
 
 file_prefix = 'mcmc_chain_only_H0'
-num_chains = 10 #change this number to 1000 if you have all chains
+num_chains = 10 #change this number to 1000 if you have all chains here https://doi.org/10.5281/zenodo.13363598
 chains = read_chains(file_prefix, num_chains)
 
 statistical_error = calculate_statistical_error(chains)
@@ -79,7 +79,7 @@ def calculate_statistical_error(chains):
 
 
 file_prefix = './Ho_sys_calibration_TRGB/mcmc_chain_only_H0'
-num_chains = 10 #change this number to 1000 if you have the full data
+num_chains = 10 #change this number to 1000 if you have the full data here https://doi.org/10.5281/zenodo.13363598
 chains = read_chains(file_prefix, num_chains)
 
 statistical_error = calculate_statistical_error(chains)

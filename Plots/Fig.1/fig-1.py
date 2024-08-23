@@ -12,7 +12,7 @@ class MidpointNormalize(Normalize):
         x, y = [self.vmin, self.midpoint, self.vmax], [-3.0, 0.0, 3.0]
         return np.ma.masked_array(np.interp(value, x, y))
 
-#dust_data = pd.read_csv('dust_data_fig_1.csv')
+#dust_data = pd.read_csv('dust_data_fig_1.csv') #You can get all data from Zenodo https://doi.org/10.5281/zenodo.13363598
 cluster_data = pd.read_csv('cluster_data_fig_1.csv')
 desi_data = pd.read_csv('desi_data_fig_1.csv')
 fuji_data = pd.read_csv('fuji_data_fig_1.csv')
@@ -25,7 +25,7 @@ ax = fig.add_subplot(1, 1, 1, projection='mollweide')
 plt.subplots_adjust(top=0.95, bottom=0.02, right=0.95, left=0.08)
 
 norm = MidpointNormalize(midpoint=-1.0)
-#uncomment that if you have the dust map. I comment that as the file is ~200Mb
+#uncomment that if you have the dust map. You can get it from here https://doi.org/10.5281/zenodo.13363598
 # ax.scatter(dust_data['ra_dust'], dust_data['dec_dust'], s=0.1, c=dust_data['ebv_dust'], 
 #            edgecolors='none', cmap='Reds', norm=norm, alpha=0.1, rasterized=True)
 
