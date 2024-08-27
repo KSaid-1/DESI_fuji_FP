@@ -13,6 +13,7 @@ class MidpointNormalize(Normalize):
         return np.ma.masked_array(np.interp(value, x, y))
 
 #dust_data = pd.read_csv('dust_data_fig_1.csv') #You can get all data from Zenodo https://doi.org/10.5281/zenodo.13363598
+#####
 cluster_data = pd.read_csv('cluster_data_fig_1.csv')
 desi_data = pd.read_csv('desi_data_fig_1.csv')
 fuji_data = pd.read_csv('fuji_data_fig_1.csv')
