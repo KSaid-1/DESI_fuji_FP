@@ -8,7 +8,7 @@ from sklearn.metrics import roc_curve, auc
 from scipy.stats import pointbiserialr
 
 def analyze_parameters(df, parameters, classification_col='flag', 
-                      save_plots=False, output_dir='./plots/'):
+                      save_plots=True, output_dir='./Galaxy_Classification_plots/'):
     """
     Analyze relationship between galaxy classification and multiple parameters
     
